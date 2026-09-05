@@ -31,31 +31,3 @@ faq-assistant/
 ├── PROJECT_PHASES.md        # Comprehensive implementation roadmap
 └── README.md                # Project documentation
 ```
-
----
-
-## 🚀 Phase 1 Setup & Status
-
-Phase 1 (Project Setup & Infrastructure) establishes the foundational directory structure, environment configurations, git tracking, and cloud service integration templates.
-
-### Prerequisites
-- Node.js (v18+ recommended)
-- npm (v9+ recommended)
-- Git
-
-### Quickstart
-
-1. **Clone or navigate to the repository:**
-   ```bash
-   cd faq-assistant
-   ```
-
-2. **Configure environment variables:**
-   Copy the example environment file to `backend/.env`:
-   ```bash
-   cp backend/.env.example backend/.env
-   ```
-   Populate `backend/.env` with your Supabase URL, Supabase Anon Key, and Google Gemini API key.
-
-3. **Next Steps:**
-   Proceed to **Phase 2: Backend Development** to install dependencies and implement document ingestion and RAG querying.
