@@ -1,11 +1,17 @@
 import React, { useState, useRef } from 'react';
 import { Upload, FileText, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
-import { uploadDocument } from '../services/api';
+import { uploadDocument, generatePrompts } from '../services/api';
 
-export default function DocumentUpload({ onUploadSuccess }) {
+export default function DocumentUpload({
+  onUploadSuccess,
+  setGeneratedPrompts,
+  setIsGeneratingPrompts,
+  isGeneratingPrompts,
+}) {
   const [file, setFile] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStage, setUploadStage] = useState('');
   const [successMessage, setSuccessMessage] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -61,6 +67,7 @@ export default function DocumentUpload({ onUploadSuccess }) {
 
     setIsUploading(true);
     setUploadProgress(10);
+    setUploadStage('Embedding & Storing Chunks...');
     setErrorMessage(null);
     setSuccessMessage(null);
 
@@ -68,6 +75,24 @@ export default function DocumentUpload({ onUploadSuccess }) {
       const result = await uploadDocument(file, (progress) => {
         setUploadProgress(progress);
       });
+
+      // Auto-generate suggested prompts from document content
+      if (setIsGeneratingPrompts) setIsGeneratingPrompts(true);
+      setUploadStage('Analyzing document with Gemini...');
+
+      try {
+        const promptRes = await generatePrompts(result.fileName);
+        if (promptRes?.prompts && setGeneratedPrompts) {
+          setGeneratedPrompts(promptRes.prompts);
+        }
+      } catch (promptErr) {
+        console.warn('Failed to generate prompts:', promptErr);
+        if (setGeneratedPrompts) {
+          setGeneratedPrompts(['What is this about?']);
+        }
+      } finally {
+        if (setIsGeneratingPrompts) setIsGeneratingPrompts(false);
+      }
 
       setSuccessMessage(
         `Successfully processed "${result.fileName}" into ${result.chunksCreated} vector chunks (${result.totalCharacters.toLocaleString()} characters).`
@@ -86,6 +111,7 @@ export default function DocumentUpload({ onUploadSuccess }) {
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
+      setUploadStage('');
     }
   };
 
@@ -146,7 +172,7 @@ export default function DocumentUpload({ onUploadSuccess }) {
         {isUploading && (
           <div className="mt-4">
             <div className="flex justify-between text-xs text-slate-600 mb-1">
-              <span>Embedding & Storing Chunks...</span>
+              <span>{uploadStage || 'Embedding & Storing Chunks...'}</span>
               <span>{uploadProgress}%</span>
             </div>
             <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">

@@ -83,11 +83,8 @@ router.post('/', async (req, res, next) => {
 
     // Step 4: Build formatted context from results
     const context = results
-      .map(
-        (doc, i) =>
-          `[Document ${i + 1}: ${doc.title} (Similarity: ${(doc.similarity * 100).toFixed(1)}%)]\n${doc.content}`
-      )
-      .join('\n\n---\n\n');
+      .map((doc) => `--- Excerpt from "${doc.title}" ---\n${doc.content}`)
+      .join('\n\n');
 
     // Step 5: Generate answer using Gemini LLM
     console.log('🤖 Synthesizing answer with Google Gemini...');

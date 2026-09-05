@@ -31,6 +31,21 @@ export const uploadDocument = async (file, onUploadProgress) => {
   return response.data;
 };
 
+export const getDocuments = async () => {
+  const response = await api.get('/documents');
+  return response.data;
+};
+
+export const deleteDocument = async (title) => {
+  const response = await api.delete(`/documents/${encodeURIComponent(title)}`);
+  return response.data;
+};
+
+export const generatePrompts = async (title) => {
+  const response = await api.post('/documents/generate-prompts', { title });
+  return response.data;
+};
+
 export const queryDocuments = async (question, match_threshold = 0.3, match_count = 5) => {
   const response = await api.post('/query', {
     question,

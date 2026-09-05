@@ -1,9 +1,10 @@
-﻿import express from 'express';
+import express from 'express';
 import multer from 'multer';
 import { createClient } from '@supabase/supabase-js';
 import { extractText } from '../utils/fileParser.js';
 import { chunkText } from '../utils/chunking.js';
 import { generateEmbedding } from '../utils/embedding.js';
+import { generatePromptsFromDocument } from '../utils/gemini.js';
 
 const router = express.Router();
 
@@ -46,6 +47,141 @@ function getSupabaseClient() {
 
   return createClient(supabaseUrl, supabaseKey);
 }
+
+/**
+ * GET /api/documents
+ * List all unique documents stored in Supabase with chunk counts and timestamps
+ */
+router.get('/', async (req, res, next) => {
+  try {
+    const supabase = getSupabaseClient();
+
+    const { data, error } = await supabase
+      .from('documents')
+      .select('id, title, created_at')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('❌ Supabase error fetching documents:', error.message);
+      throw new Error(`Database error: ${error.message}`);
+    }
+
+    // Group rows by document title
+    const documentsMap = new Map();
+
+    for (const row of data || []) {
+      const title = row.title;
+      if (!documentsMap.has(title)) {
+        documentsMap.set(title, {
+          title,
+          chunks_count: 0,
+          created_at: row.created_at,
+        });
+      }
+      documentsMap.get(title).chunks_count++;
+    }
+
+    const documents = Array.from(documentsMap.values());
+
+    console.log(`📋 Retrieved ${documents.length} unique documents from Supabase`);
+    return res.json({ documents });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * DELETE /api/documents/:title
+ * Delete all chunks associated with a specific document title
+ */
+router.delete('/:title', async (req, res, next) => {
+  try {
+    const rawTitle = req.params.title;
+    if (!rawTitle) {
+      return res.status(400).json({ error: 'Document title parameter is required' });
+    }
+
+    const title = decodeURIComponent(rawTitle);
+    console.log(`🗑️ Received delete request for document: "${title}"`);
+
+    const supabase = getSupabaseClient();
+
+    const { count, error } = await supabase
+      .from('documents')
+      .delete({ count: 'exact' })
+      .eq('title', title);
+
+    if (error) {
+      console.error(`❌ Supabase error deleting document "${title}":`, error.message);
+      throw new Error(`Database error: ${error.message}`);
+    }
+
+    if (count === 0) {
+      console.warn(`⚠️ No document chunks found matching title: "${title}"`);
+      return res.status(404).json({
+        error: `No document found with title "${title}"`,
+      });
+    }
+
+    console.log(`✅ Successfully deleted ${count} chunks for document "${title}"`);
+
+    return res.json({
+      success: true,
+      message: `Successfully deleted document "${title}" and its ${count} chunk(s)`,
+      deletedChunks: count,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /api/documents/generate-prompts
+ * Generate 4-5 dynamic suggested prompts based on document content
+ */
+router.post('/generate-prompts', async (req, res, next) => {
+  try {
+    const { title } = req.body;
+
+    if (!title || typeof title !== 'string' || title.trim().length === 0) {
+      return res.status(400).json({ error: 'Document title is required' });
+    }
+
+    const cleanTitle = title.trim();
+    console.log(`🤖 Generating suggested prompts for document: "${cleanTitle}"`);
+
+    const supabase = getSupabaseClient();
+
+    // Retrieve chunks for this document
+    const { data: chunks, error } = await supabase
+      .from('documents')
+      .select('content')
+      .eq('title', cleanTitle)
+      .limit(10);
+
+    if (error) {
+      console.error(`❌ Supabase error fetching chunks for "${cleanTitle}":`, error.message);
+      throw new Error(`Database error: ${error.message}`);
+    }
+
+    if (!chunks || chunks.length === 0) {
+      return res.status(404).json({
+        error: `No document chunks found for "${cleanTitle}"`,
+      });
+    }
+
+    // Extract text from chunks
+    const chunkTexts = chunks.map((c) => c.content);
+
+    // Generate prompts with Gemini
+    const prompts = await generatePromptsFromDocument(chunkTexts);
+    console.log(`✨ Generated ${prompts.length} dynamic prompts for "${cleanTitle}":`, prompts);
+
+    return res.json({ prompts });
+  } catch (error) {
+    next(error);
+  }
+});
 
 /**
  * POST /api/documents/upload
