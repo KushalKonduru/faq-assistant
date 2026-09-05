@@ -1,0 +1,21 @@
+﻿{
+  "name": "faq-assistant-backend",
+  "version": "1.0.0",
+  "description": "Backend API for AI FAQ Assistant with RAG",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": [
+    "rag",
+    "ai",
+    "faq-assistant",
+    "gemini",
+    "supabase"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {}
+}
