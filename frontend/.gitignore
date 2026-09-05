@@ -1,0 +1,19 @@
+﻿# Dependencies
+node_modules/
+
+# Production build output
+dist/
+dist-ssr/
+
+# Environment local overrides
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS & Editor files
+.DS_Store
+.vscode/
+.idea/
