@@ -2,6 +2,8 @@
 
 A production-ready, zero-cost Retrieval-Augmented Generation (RAG) system that enables users to upload custom documents (PDF, TXT, Markdown) and ask natural-language questions to receive context-aware, cited answers powered by AI.
 
+🌐 **Live Web Application:** [https://contextsense.vercel.app](https://contextsense.vercel.app)
+
 ---
 
 ## 🌟 Key Features

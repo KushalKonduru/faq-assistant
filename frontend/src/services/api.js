@@ -4,7 +4,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 const api = axios.create({
   baseURL: API_BASE_URL ? `${API_BASE_URL}/api` : '/api',
-  timeout: 60000,
+  timeout: 120000, // 2 minutes to handle free-tier cloud wakeups
 });
 
 export const checkHealth = async () => {
@@ -20,6 +20,7 @@ export const uploadDocument = async (file, onUploadProgress) => {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
+    timeout: 180000, // 3 minutes for embedding generation
     onUploadProgress: (progressEvent) => {
       if (onUploadProgress && progressEvent.total) {
         const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);

@@ -206,8 +206,8 @@ router.post('/upload', upload.single('file'), async (req, res, next) => {
 
     console.log(`📝 Extracted ${text.length} characters from ${req.file.originalname}`);
 
-    // Step 2: Chunk the extracted text
-    const chunks = chunkText(text, 500, 50);
+    // Step 2: Chunk the extracted text (800 chars with 100 overlap for rich context & speed)
+    const chunks = chunkText(text, 800, 100);
 
     if (chunks.length === 0) {
       return res.status(400).json({ error: 'Could not generate chunks from the uploaded file' });
@@ -218,46 +218,47 @@ router.post('/upload', upload.single('file'), async (req, res, next) => {
     // Step 3: Initialize Supabase client
     const supabase = getSupabaseClient();
 
-    // Step 4: Generate embeddings and insert into Supabase
+    // Step 4: Generate embeddings concurrently in batches of 5
+    const rowsToInsert = [];
+    const EMBEDDING_BATCH_SIZE = 5;
+
+    for (let i = 0; i < chunks.length; i += EMBEDDING_BATCH_SIZE) {
+      const batchChunks = chunks.slice(i, i + EMBEDDING_BATCH_SIZE);
+      const embeddings = await Promise.all(
+        batchChunks.map((chunk) => generateEmbedding(chunk))
+      );
+
+      for (let j = 0; j < batchChunks.length; j++) {
+        rowsToInsert.push({
+          title: req.file.originalname,
+          content: batchChunks[j],
+          embedding: embeddings[j],
+        });
+      }
+
+      console.log(
+        `⏳ Embedded ${Math.min(i + EMBEDDING_BATCH_SIZE, chunks.length)}/${chunks.length} chunks`
+      );
+    }
+
+    // Step 5: Bulk insert into Supabase in batches of 25
     let successCount = 0;
-    const errors = [];
+    const DB_BATCH_SIZE = 25;
 
-    for (let i = 0; i < chunks.length; i++) {
-      const chunk = chunks[i];
+    for (let i = 0; i < rowsToInsert.length; i += DB_BATCH_SIZE) {
+      const dbBatch = rowsToInsert.slice(i, i + DB_BATCH_SIZE);
+      const { error: insertError } = await supabase.from('documents').insert(dbBatch);
 
-      try {
-        const embedding = await generateEmbedding(chunk);
-
-        const { error: insertError } = await supabase
-          .from('documents')
-          .insert([
-            {
-              title: req.file.originalname,
-              content: chunk,
-              embedding: embedding,
-            },
-          ]);
-
-        if (insertError) {
-          console.error(`❌ Error inserting chunk ${i + 1}/${chunks.length}:`, insertError.message);
-          errors.push(`Chunk ${i + 1}: ${insertError.message}`);
-        } else {
-          successCount++;
-        }
-
-        if ((i + 1) % 10 === 0 || i + 1 === chunks.length) {
-          console.log(`⏳ Progress: ${i + 1}/${chunks.length} chunks processed`);
-        }
-      } catch (chunkError) {
-        console.error(`❌ Error processing chunk ${i + 1}:`, chunkError.message);
-        errors.push(`Chunk ${i + 1}: ${chunkError.message}`);
+      if (insertError) {
+        console.error(`❌ Error inserting database batch at ${i}:`, insertError.message);
+      } else {
+        successCount += dbBatch.length;
       }
     }
 
     if (successCount === 0) {
       return res.status(500).json({
         error: 'Failed to store document chunks in database',
-        details: errors,
       });
     }
 
