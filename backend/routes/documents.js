@@ -49,16 +49,36 @@ function getSupabaseClient() {
 }
 
 /**
+ * Helper to get session ID from request
+ */
+function getSessionId(req) {
+  return (
+    req.headers['x-session-id'] ||
+    req.body?.session_id ||
+    req.query?.session_id ||
+    null
+  );
+}
+
+/**
  * GET /api/documents
- * List all unique documents stored in Supabase with chunk counts and timestamps
+ * List all unique documents for the active session
  */
 router.get('/', async (req, res, next) => {
   try {
+    const sessionId = getSessionId(req);
+
+    if (!sessionId) {
+      // If no session provided, return empty list to protect privacy
+      return res.json({ documents: [] });
+    }
+
     const supabase = getSupabaseClient();
 
     const { data, error } = await supabase
       .from('documents')
       .select('id, title, created_at')
+      .eq('session_id', sessionId)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -83,7 +103,7 @@ router.get('/', async (req, res, next) => {
 
     const documents = Array.from(documentsMap.values());
 
-    console.log(`📋 Retrieved ${documents.length} unique documents from Supabase`);
+    console.log(`📋 Retrieved ${documents.length} private documents for session: ${sessionId.slice(0, 12)}...`);
     return res.json({ documents });
   } catch (error) {
     next(error);
@@ -92,7 +112,7 @@ router.get('/', async (req, res, next) => {
 
 /**
  * DELETE /api/documents/:title
- * Delete all chunks associated with a specific document title
+ * Delete all chunks for a document belonging to the active session
  */
 router.delete('/:title', async (req, res, next) => {
   try {
@@ -101,15 +121,22 @@ router.delete('/:title', async (req, res, next) => {
       return res.status(400).json({ error: 'Document title parameter is required' });
     }
 
+    const sessionId = getSessionId(req);
     const title = decodeURIComponent(rawTitle);
-    console.log(`🗑️ Received delete request for document: "${title}"`);
+    console.log(`🗑️ Received delete request for document: "${title}" (Session: ${sessionId?.slice(0, 12)}...)`);
 
     const supabase = getSupabaseClient();
 
-    const { count, error } = await supabase
+    let query = supabase
       .from('documents')
       .delete({ count: 'exact' })
       .eq('title', title);
+
+    if (sessionId) {
+      query = query.eq('session_id', sessionId);
+    }
+
+    const { count, error } = await query;
 
     if (error) {
       console.error(`❌ Supabase error deleting document "${title}":`, error.message);
@@ -117,9 +144,9 @@ router.delete('/:title', async (req, res, next) => {
     }
 
     if (count === 0) {
-      console.warn(`⚠️ No document chunks found matching title: "${title}"`);
+      console.warn(`⚠️ No document chunks found matching title: "${title}" in session`);
       return res.status(404).json({
-        error: `No document found with title "${title}"`,
+        error: `No document found with title "${title}" in your session`,
       });
     }
 
@@ -148,16 +175,23 @@ router.post('/generate-prompts', async (req, res, next) => {
     }
 
     const cleanTitle = title.trim();
-    console.log(`🤖 Generating suggested prompts for document: "${cleanTitle}"`);
+    const sessionId = getSessionId(req);
+    console.log(`🤖 Generating suggested prompts for document: "${cleanTitle}" (Session: ${sessionId?.slice(0, 12)}...)`);
 
     const supabase = getSupabaseClient();
 
-    // Retrieve chunks for this document
-    const { data: chunks, error } = await supabase
+    // Retrieve chunks for this document filtered by session
+    let chunkQuery = supabase
       .from('documents')
       .select('content')
       .eq('title', cleanTitle)
       .limit(10);
+
+    if (sessionId) {
+      chunkQuery = chunkQuery.eq('session_id', sessionId);
+    }
+
+    const { data: chunks, error } = await chunkQuery;
 
     if (error) {
       console.error(`❌ Supabase error fetching chunks for "${cleanTitle}":`, error.message);
@@ -166,7 +200,7 @@ router.post('/generate-prompts', async (req, res, next) => {
 
     if (!chunks || chunks.length === 0) {
       return res.status(404).json({
-        error: `No document chunks found for "${cleanTitle}"`,
+        error: `No document chunks found for "${cleanTitle}" in your session`,
       });
     }
 
@@ -185,7 +219,7 @@ router.post('/generate-prompts', async (req, res, next) => {
 
 /**
  * POST /api/documents/upload
- * Upload and process a document (PDF, TXT, MD)
+ * Upload and process a document (PDF, TXT, MD) tagged to active session
  */
 router.post('/upload', upload.single('file'), async (req, res, next) => {
   try {
@@ -193,8 +227,10 @@ router.post('/upload', upload.single('file'), async (req, res, next) => {
       return res.status(400).json({ error: 'No file uploaded. Please provide a valid file field.' });
     }
 
+    const sessionId = getSessionId(req) || 'sess_anonymous';
+
     console.log(
-      `📄 Received file upload: ${req.file.originalname} (${req.file.mimetype}, ${req.file.size} bytes)`
+      `📄 Received file upload: ${req.file.originalname} (${req.file.mimetype}, ${req.file.size} bytes) for Session: ${sessionId.slice(0, 12)}...`
     );
 
     // Step 1: Extract text from file
@@ -233,6 +269,7 @@ router.post('/upload', upload.single('file'), async (req, res, next) => {
           title: req.file.originalname,
           content: batchChunks[j],
           embedding: embeddings[j],
+          session_id: sessionId,
         });
       }
 

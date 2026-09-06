@@ -39,8 +39,9 @@ router.post('/', async (req, res, next) => {
       return res.status(400).json({ error: 'Question is required and cannot be empty' });
     }
 
+    const sessionId = req.headers['x-session-id'] || req.body.session_id || null;
     const cleanQuestion = question.trim();
-    console.log(`🔍 Received user query: "${cleanQuestion}"`);
+    console.log(`🔍 Received user query: "${cleanQuestion}" (Session: ${sessionId?.slice(0, 12)}...)`);
 
     // Step 1: Generate embedding for question
     console.log('⚡ Generating vector embedding for query...');
@@ -60,6 +61,7 @@ router.post('/', async (req, res, next) => {
         query_embedding: questionEmbedding,
         match_threshold: matchThreshold,
         match_count: matchCount,
+        filter_session_id: sessionId,
       }
     );
 

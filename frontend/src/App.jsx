@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Bot, Sparkles, ArrowLeft, RefreshCw, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Bot, Sparkles, ArrowLeft, RefreshCw, PanelLeftClose, PanelLeftOpen, ShieldCheck } from 'lucide-react';
 import DocumentUpload from './components/DocumentUpload';
 import DocumentList from './components/DocumentList';
 import ChatInterface from './components/ChatInterface';
 import LandingPage from './components/LandingPage';
 import { checkHealth, queryDocuments, getDocuments, deleteDocument, generatePrompts } from './services/api';
+import { getSessionId, resetSession } from './utils/session';
 
 function getInitialView() {
   if (typeof window === 'undefined') return false;
@@ -134,6 +135,21 @@ export default function App() {
       alert(`Error deleting document: ${msg}`);
     } finally {
       setDeletingTitle(null);
+    }
+  };
+
+  // Reset private browser session (wipes active session workspace)
+  const handleResetSession = () => {
+    if (
+      window.confirm(
+        'Start a new private session? Your current workspace view on this browser will be reset.'
+      )
+    ) {
+      resetSession();
+      setDocuments([]);
+      setGeneratedPrompts([]);
+      setMessages([]);
+      loadDocuments(false);
     }
   };
 
@@ -316,11 +332,19 @@ export default function App() {
         />
       </div>
 
-      {/* Sidebar Footer */}
-      <div className="p-3 border-t border-slate-200/80 bg-slate-50/60 text-center flex-shrink-0">
-        <p className="text-[10px] text-slate-400 font-medium">
-          Zero-Cost Embeddings &bull; Supabase pgvector
-        </p>
+      {/* Sidebar Footer with Private Vault status & New Session button */}
+      <div className="p-3 border-t border-slate-200/80 bg-slate-50/60 flex items-center justify-between flex-shrink-0 text-[11px]">
+        <div className="flex items-center space-x-1.5 text-slate-600" title="All documents and searches are isolated to your browser session">
+          <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+          <span className="font-semibold text-[11px]">Private Vault</span>
+        </div>
+        <button
+          onClick={handleResetSession}
+          className="text-[10px] font-medium text-slate-500 hover:text-indigo-600 hover:underline px-1.5 py-0.5 rounded border border-slate-200 bg-white hover:border-indigo-200 transition-colors"
+          title="Start a new private session (clears active session)"
+        >
+          New Session
+        </button>
       </div>
     </div>
   );

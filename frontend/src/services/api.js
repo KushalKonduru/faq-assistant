@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getSessionId } from '../utils/session';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
@@ -7,18 +8,32 @@ const api = axios.create({
   timeout: 120000, // 2 minutes to handle free-tier cloud wakeups
 });
 
+// Automatically inject session ID header to isolate every user request
+api.interceptors.request.use((config) => {
+  const sessionId = getSessionId();
+  if (sessionId) {
+    config.headers['x-session-id'] = sessionId;
+  }
+  return config;
+});
+
 export const checkHealth = async () => {
   const response = await api.get('/health');
   return response.data;
 };
 
 export const uploadDocument = async (file, onUploadProgress) => {
+  const sessionId = getSessionId();
   const formData = new FormData();
   formData.append('file', file);
+  if (sessionId) {
+    formData.append('session_id', sessionId);
+  }
 
   const response = await api.post('/documents/upload', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
+      'x-session-id': sessionId,
     },
     timeout: 180000, // 3 minutes for embedding generation
     onUploadProgress: (progressEvent) => {
