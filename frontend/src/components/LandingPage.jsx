@@ -1,4 +1,5 @@
 import React from 'react';
+import Silk from './Silk';
 import {
   Bot,
   Sparkles,
@@ -45,8 +46,8 @@ export default function LandingPage({ onLaunchApp }) {
       icon: Cpu,
       color: 'from-teal-500 to-emerald-500',
       description:
-        'HuggingFace Xenova all-MiniLM-L6-v2 runs locally on server CPU. Generates 384d vectors with $0.00 API bill.',
-      badge: 'Local ONNX Runtime',
+        'Official @huggingface/transformers all-MiniLM-L6-v2 runs locally on server CPU. Generates 384d vectors with $0.00 API bill.',
+      badge: 'Hugging Face ONNX',
     },
     {
       step: '04',
@@ -82,7 +83,7 @@ export default function LandingPage({ onLaunchApp }) {
       icon: Zap,
       title: 'Zero Embedding API Cost',
       description:
-        'Powered by local ONNX Xenova Transformers. Embed thousands of document chunks without paying a cent to OpenAI or third-party vector providers.',
+        'Powered by official Hugging Face Transformers. Embed thousands of document chunks locally without paying a cent to OpenAI or third-party vector providers.',
     },
     {
       icon: ShieldCheck,
@@ -128,10 +129,10 @@ export default function LandingPage({ onLaunchApp }) {
             <div>
               <div className="flex items-center space-x-2">
                 <span className="font-bold text-base tracking-tight text-white">
-                  FAQ Assistant
+                  ContextSense
                 </span>
                 <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                  RAG AI
+                  RAG
                 </span>
               </div>
             </div>
@@ -143,9 +144,6 @@ export default function LandingPage({ onLaunchApp }) {
             </a>
             <a href="#features" className="hover:text-white transition-colors">
               Features
-            </a>
-            <a href="#architecture" className="hover:text-white transition-colors">
-              Architecture
             </a>
           </nav>
 
@@ -163,7 +161,7 @@ export default function LandingPage({ onLaunchApp }) {
               onClick={onLaunchApp}
               className="inline-flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-md shadow-indigo-600/30 transition-all transform hover:-translate-y-0.5 active:translate-y-0"
             >
-              <span>Launch Assistant</span>
+              <span>Try Now</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -172,15 +170,23 @@ export default function LandingPage({ onLaunchApp }) {
 
       {/* Hero Section */}
       <section className="relative overflow-hidden pt-20 pb-24 lg:pt-28 lg:pb-32">
-        {/* Glow background effects */}
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-gradient-to-tr from-blue-600/20 via-indigo-600/20 to-purple-600/20 blur-[120px] pointer-events-none rounded-full" />
+        {/* React Bits Silk Animated Background (Option B: Silver/White Shimmer) */}
+        <div className="absolute inset-0 -top-16 h-[720px] w-full overflow-hidden pointer-events-none z-0 opacity-25">
+          <Silk
+            speed={1.9}
+            scale={0.8}
+            color="#ffffff"
+            noiseIntensity={0.9}
+            rotation={2.28}
+          />
+          {/* Soft vignette fade to blend edges seamlessly into slate-900 */}
+          <div className="absolute inset-0 bg-gradient-to-b from-slate-900/60 via-transparent to-slate-900" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-transparent via-slate-900/40 to-slate-900" />
+        </div>
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           {/* Eyebrow badge */}
-          <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-slate-800/80 border border-slate-700 text-xs font-medium text-slate-300 mb-8 backdrop-blur-sm shadow-sm">
-            <Sparkles className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
-            <span>Enterprise Retrieval-Augmented Generation</span>
-            <span className="text-slate-500">&bull;</span>
+          <div className="inline-flex items-center px-3.5 py-1.5 rounded-full bg-slate-800/80 border border-slate-700 text-xs font-medium mb-8 backdrop-blur-sm shadow-sm">
             <span className="text-emerald-400 font-semibold">100% Free Tier</span>
           </div>
 
@@ -194,7 +200,7 @@ export default function LandingPage({ onLaunchApp }) {
 
           {/* Subtitle */}
           <p className="mt-6 text-lg sm:text-xl text-slate-400 max-w-2xl mx-auto font-normal leading-relaxed">
-            Upload company FAQs, technical manuals, or guidelines. Ask questions in natural language
+            Upload company documents, technical manuals, or guidelines. Ask questions in natural language
             and receive cited, hallucination-free answers powered by Google Gemini and Supabase
             pgvector.
           </p>
@@ -205,7 +211,7 @@ export default function LandingPage({ onLaunchApp }) {
               onClick={onLaunchApp}
               className="w-full sm:w-auto inline-flex items-center justify-center space-x-2.5 px-7 py-3.5 rounded-xl text-base font-semibold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white shadow-lg shadow-indigo-600/25 transition-all transform hover:-translate-y-0.5"
             >
-              <span>Launch FAQ Assistant</span>
+              <span>Launch ContextSense</span>
               <ArrowRight className="w-5 h-5" />
             </button>
             <a
@@ -267,7 +273,7 @@ export default function LandingPage({ onLaunchApp }) {
                       <span className="font-semibold text-slate-300">Source Evidence:</span>
                       <span className="bg-slate-800 text-slate-300 px-2.5 py-1 rounded-md border border-slate-700 flex items-center space-x-1.5">
                         <FileText className="w-3.5 h-3.5 text-blue-400" />
-                        <span>acme_faq_guide.txt</span>
+                        <span>company_policy_guide.txt</span>
                       </span>
                     </div>
                     <span className="text-[11px] text-emerald-400 font-mono">
@@ -363,68 +369,6 @@ export default function LandingPage({ onLaunchApp }) {
         </div>
       </section>
 
-      {/* Architecture & Cost Transparency */}
-      <section id="architecture" className="py-20 bg-slate-950 border-t border-slate-800">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="rounded-3xl bg-gradient-to-r from-blue-900/30 via-indigo-900/30 to-purple-900/30 border border-indigo-500/30 p-8 sm:p-12">
-            <div className="max-w-3xl">
-              <span className="text-xs font-bold tracking-wider uppercase text-indigo-400">
-                Cost &amp; Privacy Comparison
-              </span>
-              <h2 className="mt-2 text-2xl sm:text-3xl font-extrabold text-white">
-                Why Local Transformers Beat Cloud Embedding APIs
-              </h2>
-              <p className="mt-4 text-sm sm:text-base text-slate-300 leading-relaxed">
-                Traditional RAG architectures call proprietary cloud embedding APIs (such as OpenAI
-                Ada/3-small) on every single chunk upload and search query, incurring cumulative
-                costs and transmitting private documents over external networks.
-              </p>
-            </div>
-
-            <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="rounded-xl bg-slate-900/80 border border-slate-800 p-5">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-rose-400 mb-2">
-                  Traditional Cloud RAG
-                </h4>
-                <ul className="space-y-2 text-xs text-slate-400">
-                  <li className="flex items-center space-x-2">
-                    <span className="text-rose-400 font-bold">✕</span>
-                    <span>$0.02 - $0.13 per 1M embedding tokens</span>
-                  </li>
-                  <li className="flex items-center space-x-2">
-                    <span className="text-rose-400 font-bold">✕</span>
-                    <span>Document data transmitted to 3rd-party vector APIs</span>
-                  </li>
-                  <li className="flex items-center space-x-2">
-                    <span className="text-rose-400 font-bold">✕</span>
-                    <span>Subject to proprietary API rate limits</span>
-                  </li>
-                </ul>
-              </div>
-
-              <div className="rounded-xl bg-indigo-950/40 border border-indigo-500/30 p-5">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-2">
-                  Our Free-Tier Architecture
-                </h4>
-                <ul className="space-y-2 text-xs text-slate-200">
-                  <li className="flex items-center space-x-2">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>$0.00 cost via local Xenova MiniLM model</span>
-                  </li>
-                  <li className="flex items-center space-x-2">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Embedded locally on server before storage</span>
-                  </li>
-                  <li className="flex items-center space-x-2">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Supabase pgvector + Google Gemini Free Tier</span>
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* CTA Section */}
       <section className="py-20 bg-slate-900 text-center relative overflow-hidden border-t border-slate-800">
@@ -440,7 +384,7 @@ export default function LandingPage({ onLaunchApp }) {
               onClick={onLaunchApp}
               className="inline-flex items-center space-x-2.5 px-8 py-4 rounded-xl text-base font-semibold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white shadow-xl shadow-indigo-600/30 transition-all transform hover:-translate-y-0.5"
             >
-              <span>Launch FAQ Assistant Now</span>
+              <span>Launch ContextSense Now</span>
               <ArrowRight className="w-5 h-5" />
             </button>
           </div>
@@ -452,7 +396,7 @@ export default function LandingPage({ onLaunchApp }) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center space-x-2">
             <Bot className="w-4 h-4 text-indigo-400" />
-            <span className="text-slate-300 font-semibold">AI FAQ Assistant</span>
+            <span className="text-slate-300 font-semibold">ContextSense</span>
             <span>&bull;</span>
             <span>RAG Architecture</span>
           </div>

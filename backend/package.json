@@ -1,7 +1,7 @@
-﻿{
-  "name": "faq-assistant-backend",
+{
+  "name": "contextsense-backend",
   "version": "1.0.0",
-  "description": "Backend API for AI FAQ Assistant with RAG",
+  "description": "Backend API for ContextSense with RAG",
   "main": "server.js",
   "type": "module",
   "scripts": {
@@ -11,7 +11,7 @@
   "keywords": [
     "rag",
     "ai",
-    "faq-assistant",
+    "contextsense",
     "gemini",
     "supabase"
   ],
@@ -19,8 +19,8 @@
   "license": "ISC",
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
+    "@huggingface/transformers": "^4.2.0",
     "@supabase/supabase-js": "^2.45.4",
-    "@xenova/transformers": "^2.17.2",
     "axios": "^1.7.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",

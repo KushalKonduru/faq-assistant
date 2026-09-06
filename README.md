@@ -1,4 +1,4 @@
-# AI FAQ Assistant with RAG
+# ContextSense - Document Intelligence with RAG
 
 A production-ready Retrieval-Augmented Generation (RAG) system that enables users to upload custom documents (PDF, TXT, Markdown) and ask natural-language questions to receive context-aware, cited answers powered by AI.
 
@@ -8,7 +8,7 @@ A production-ready Retrieval-Augmented Generation (RAG) system that enables user
 
 - **Multi-Format Document Parsing:** Automatically extracts clean text from PDFs, Markdown, and plain text files.
 - **Intelligent Text Chunking:** Dynamically splits large documents into semantic chunks with configurable sliding window overlap.
-- **Free, Local Vector Embeddings:** Uses `@xenova/transformers` (`all-MiniLM-L6-v2`) to generate embeddings locally on CPU—100% private, zero external API costs, and zero rate limits.
+- **Free, Local Vector Embeddings:** Uses `@huggingface/transformers` (`all-MiniLM-L6-v2`) to generate embeddings locally on CPU—100% private, zero external API costs, and zero rate limits.
 - **Vector Database Search:** Stores vector embeddings in PostgreSQL using Supabase's `pgvector` extension for rapid cosine similarity retrieval.
 - **AI Synthesis with Citations:** Uses Google Gemini to generate clear, concise answers strictly grounded in retrieved document context, complete with document citations.
 - **Robust REST API:** Built with Node.js and Express (ES Modules), complete with input validation, memory-efficient multipart uploads, and centralized error handling.
@@ -24,7 +24,7 @@ A production-ready Retrieval-Augmented Generation (RAG) system that enables user
     [File Parser & Chunker]
             │
             ▼
- [Local Embeddings (Xenova)] ───► [Supabase pgvector (documents)]
+ [Local Embeddings (Hugging Face)] ───► [Supabase pgvector (documents)]
                                                  │
 [User Question] ──► [Query Embedding] ──────────┤
                                                  ▼
@@ -49,7 +49,7 @@ A production-ready Retrieval-Augmented Generation (RAG) system that enables user
 | **Frontend** | React, Tailwind CSS | Modern interactive web interface (Phase 3) |
 | **Backend** | Node.js, Express (ES Modules) | High-performance RESTful API service |
 | **Vector DB** | Supabase (PostgreSQL + `pgvector`) | Cloud vector storage & similarity search |
-| **Embeddings** | `@xenova/transformers` | Local, free sentence embeddings (`all-MiniLM-L6-v2`) |
+| **Embeddings** | `@huggingface/transformers` | Local, free sentence embeddings (`all-MiniLM-L6-v2`) |
 | **LLM** | Google Gemini (`@google/generative-ai`) | High-speed, context-grounded answer generation |
 | **File Processing** | `multer`, `pdf-parse` | Multipart upload stream and PDF text extraction |
 

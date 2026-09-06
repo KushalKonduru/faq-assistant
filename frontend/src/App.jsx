@@ -1,24 +1,52 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Bot, Sparkles, Activity, ShieldCheck, ArrowLeft, RefreshCw } from 'lucide-react';
+import { Bot, Sparkles, ArrowLeft, RefreshCw, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import DocumentUpload from './components/DocumentUpload';
 import DocumentList from './components/DocumentList';
-import QueryForm from './components/QueryForm';
-import AnswerDisplay from './components/AnswerDisplay';
+import ChatInterface from './components/ChatInterface';
 import LandingPage from './components/LandingPage';
 import { checkHealth, queryDocuments, getDocuments, deleteDocument, generatePrompts } from './services/api';
 
+function getInitialView() {
+  if (typeof window === 'undefined') return false;
+  const path = window.location.pathname;
+  const hash = window.location.hash;
+  return path === '/chat' || hash === '#chat';
+}
+
 export default function App() {
-  const [showApp, setShowApp] = useState(false);
+  const [showApp, setShowApp] = useState(getInitialView);
   const [documents, setDocuments] = useState([]);
   const [isLoadingDocs, setIsLoadingDocs] = useState(false);
   const [deletingTitle, setDeletingTitle] = useState(null);
   const [generatedPrompts, setGeneratedPrompts] = useState([]);
   const [isGeneratingPrompts, setIsGeneratingPrompts] = useState(false);
-  const [queryResult, setQueryResult] = useState(null);
-  const [currentQuestion, setCurrentQuestion] = useState('');
+  const [messages, setMessages] = useState([]);
   const [isQuerying, setIsQuerying] = useState(false);
-  const [queryError, setQueryError] = useState(null);
   const [isBackendOnline, setIsBackendOnline] = useState(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  // Synchronize browser history and handle Back/Forward buttons
+  useEffect(() => {
+    const isInitialChat = getInitialView();
+    if (!window.history.state) {
+      window.history.replaceState(
+        { view: isInitialChat ? 'chat' : 'landing' },
+        '',
+        isInitialChat ? '/chat' : window.location.pathname
+      );
+    }
+
+    const handlePopState = (event) => {
+      const isChat =
+        event.state?.view === 'chat' ||
+        window.location.pathname === '/chat' ||
+        window.location.hash === '#chat';
+      setShowApp(isChat);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // Fetch unique documents and chunk stats from Supabase
   const loadDocuments = useCallback(async (autoFetchPrompts = false) => {
@@ -109,149 +137,219 @@ export default function App() {
     }
   };
 
-  const handleQuerySubmit = async (question) => {
-    setCurrentQuestion(question);
+  // Refresh / Regenerate starter questions from document chunks
+  const handleRefreshPrompts = async () => {
+    if (documents.length === 0 || isGeneratingPrompts) return;
+    try {
+      setIsGeneratingPrompts(true);
+      const targetDoc = documents[0];
+      const pData = await generatePrompts(targetDoc.title || targetDoc.fileName);
+      if (pData?.prompts?.length > 0) {
+        setGeneratedPrompts(pData.prompts);
+      }
+    } catch (err) {
+      console.warn('Could not refresh starter questions from chunks:', err);
+    } finally {
+      setIsGeneratingPrompts(false);
+    }
+  };
+
+  // Chat message submission handler
+  const handleSendMessage = async (question) => {
+    const userMsg = {
+      id: Date.now(),
+      role: 'user',
+      content: question,
+      timestamp: new Date(),
+    };
+
+    setMessages((prev) => [...prev, userMsg]);
     setIsQuerying(true);
-    setQueryError(null);
 
     try {
       const data = await queryDocuments(question);
-      setQueryResult(data);
+      const botMsg = {
+        id: Date.now() + 1,
+        role: 'assistant',
+        content: data.answer,
+        sources: data.sources || [],
+        similarity_scores: data.similarity_scores || [],
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, botMsg]);
     } catch (err) {
       console.error('Query execution failed:', err);
-      const msg =
-        err.response?.data?.error || err.message || 'Failed to generate answer for your question';
-      setQueryError(msg);
+      const errorMsg = {
+        id: Date.now() + 1,
+        role: 'assistant',
+        isError: true,
+        content:
+          err.response?.data?.error ||
+          err.message ||
+          'Failed to generate an answer. Please verify the backend is running and try again.',
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMsg]);
     } finally {
       setIsQuerying(false);
     }
   };
 
+  const handleClearChat = () => {
+    setMessages([]);
+  };
+
+  // Navigate to Chat workspace with browser history synchronization
+  const handleLaunchApp = () => {
+    if (!showApp) {
+      window.history.pushState({ view: 'chat' }, '', '/chat');
+      setShowApp(true);
+    }
+  };
+
+  // Navigate back to Landing page overview with browser history synchronization
+  const handleReturnToLanding = () => {
+    if (window.history.state?.view === 'chat') {
+      window.history.back();
+      setShowApp(false);
+    } else {
+      window.history.pushState({ view: 'landing' }, '', '/');
+      setShowApp(false);
+    }
+  };
+
   // If user is on landing page view, render LandingPage
   if (!showApp) {
-    return <LandingPage onLaunchApp={() => setShowApp(true)} />;
+    return <LandingPage onLaunchApp={handleLaunchApp} />;
   }
 
-  return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-900">
-      {/* Top Navigation Bar */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            {/* Back to Home Button */}
-            <button
-              onClick={() => setShowApp(false)}
-              className="inline-flex items-center space-x-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg border border-slate-200 transition-colors mr-1"
-              title="Return to Landing Page"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Back to Overview</span>
-            </button>
+  // Common sidebar content
+  const sidebarContent = (
+    <div className="flex flex-col h-full bg-white w-full overflow-hidden">
+      {/* Sidebar Header */}
+      <div className="p-4 border-b border-slate-200/80 flex-shrink-0 space-y-3">
+        {/* Top Actions: Back to Overview + Refresh + Collapse Sidebar */}
+        <div className="flex items-center justify-between">
+          <button
+            onClick={handleReturnToLanding}
+            className="inline-flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-50 rounded-xl border border-slate-200 shadow-2xs transition-all"
+            title="Return to Overview"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Overview</span>
+          </button>
 
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-sm">
-              <Bot className="w-4 h-4" />
-            </div>
-            <div>
-              <div className="flex items-center space-x-2">
-                <h1 className="text-base font-bold text-slate-900 tracking-tight">
-                  AI FAQ Assistant
-                </h1>
-                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
-                  RAG
-                </span>
-              </div>
-              <p className="text-xs text-slate-500 hidden sm:block">
-                Retrieval-Augmented Generation with Supabase &amp; Gemini
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-3">
-            {/* Refresh Documents Button */}
+          <div className="flex items-center space-x-1.5">
             <button
-              onClick={loadDocuments}
+              onClick={() => loadDocuments()}
               disabled={isLoadingDocs}
               className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg border border-slate-200 transition-colors disabled:opacity-50"
               title="Refresh Knowledge Base"
             >
-              <RefreshCw className={`w-4 h-4 ${isLoadingDocs ? 'animate-spin text-indigo-600' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoadingDocs ? 'animate-spin text-indigo-600' : ''}`} />
             </button>
 
-            {/* Backend Status Indicator */}
-            <div className="flex items-center space-x-2 text-xs font-medium bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-full">
-              <span
-                className={`w-2 h-2 rounded-full ${
-                  isBackendOnline === true
-                    ? 'bg-emerald-500 animate-pulse'
-                    : isBackendOnline === false
-                    ? 'bg-rose-500'
-                    : 'bg-amber-400 animate-ping'
-                }`}
-              />
-              <span className="text-slate-600">
-                {isBackendOnline === true
-                  ? 'Backend Online'
-                  : isBackendOnline === false
-                  ? 'Backend Offline'
-                  : 'Connecting...'}
-              </span>
+            <button
+              onClick={() => setIsSidebarOpen(false)}
+              className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg border border-slate-200 transition-colors"
+              title="Collapse sidebar"
+            >
+              <PanelLeftClose className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Brand Bar */}
+        <div className="flex items-center justify-between pt-1">
+          <div className="flex items-center space-x-2.5">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-violet-600 flex items-center justify-center text-white shadow-xs">
+              <Sparkles className="w-4.5 h-4.5" />
+            </div>
+            <div>
+              <div className="flex items-center space-x-1.5">
+                <h1 className="text-sm font-bold text-slate-900 tracking-tight">ContextSense</h1>
+                <span className="text-[9px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200/60">
+                  RAG
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-400">Gemini + Supabase</p>
             </div>
           </div>
-        </div>
-      </header>
 
-      {/* Main Two-Column Layout */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Left Column: Upload & Ingestion (5 cols) */}
-          <div className="lg:col-span-5 space-y-6">
-            <DocumentUpload
-              onUploadSuccess={handleUploadSuccess}
-              setGeneratedPrompts={setGeneratedPrompts}
-              setIsGeneratingPrompts={setIsGeneratingPrompts}
-              isGeneratingPrompts={isGeneratingPrompts}
+          {/* Backend Status Dot */}
+          <div
+            className="flex items-center space-x-1.5 text-[11px] font-medium px-2 py-0.5 rounded-full border bg-emerald-50/80 text-emerald-800 border-emerald-200/70"
+            title="Backend Status"
+          >
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${
+                isBackendOnline === true
+                  ? 'bg-emerald-500 animate-pulse'
+                  : isBackendOnline === false
+                  ? 'bg-rose-500'
+                  : 'bg-amber-400 animate-ping'
+              }`}
             />
-            <DocumentList
-              documents={documents}
-              onDeleteDocument={handleDeleteDocument}
-              isLoading={isLoadingDocs}
-              deletingTitle={deletingTitle}
-            />
-          </div>
-
-          {/* Right Column: Q&A Interaction & Answer Display (7 cols) */}
-          <div className="lg:col-span-7 space-y-6">
-            <QueryForm
-              onSubmitQuery={handleQuerySubmit}
-              isLoading={isQuerying}
-              hasDocuments={documents.length > 0}
-              generatedPrompts={generatedPrompts}
-              isGeneratingPrompts={isGeneratingPrompts}
-            />
-
-            <AnswerDisplay
-              queryResult={queryResult}
-              isLoading={isQuerying}
-              currentQuestion={currentQuestion}
-              error={queryError}
-            />
+            <span className="text-[10px]">
+              {isBackendOnline === true ? 'Online' : isBackendOnline === false ? 'Offline' : 'Connecting'}
+            </span>
           </div>
         </div>
+      </div>
+
+      {/* Sidebar Scrollable Body: Upload + Knowledge Base */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {/* Section 1: Upload Documents */}
+        <DocumentUpload
+          onUploadSuccess={handleUploadSuccess}
+          setGeneratedPrompts={setGeneratedPrompts}
+          setIsGeneratingPrompts={setIsGeneratingPrompts}
+          isGeneratingPrompts={isGeneratingPrompts}
+        />
+
+        {/* Section 2: Knowledge Base Document List */}
+        <DocumentList
+          documents={documents}
+          onDeleteDocument={handleDeleteDocument}
+          isLoading={isLoadingDocs}
+          deletingTitle={deletingTitle}
+        />
+      </div>
+
+      {/* Sidebar Footer */}
+      <div className="p-3 border-t border-slate-200/80 bg-slate-50/60 text-center flex-shrink-0">
+        <p className="text-[10px] text-slate-400 font-medium">
+          Zero-Cost Embeddings &bull; Supabase pgvector
+        </p>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="h-screen w-full flex overflow-hidden font-sans text-slate-900 bg-white antialiased">
+      {/* Left Sidebar (In-flow flex column: zero overlap guaranteed) */}
+      {isSidebarOpen && (
+        <aside className="w-80 md:w-84 xl:w-96 flex-shrink-0 h-screen border-r border-slate-200/90 flex flex-col bg-white overflow-hidden z-10 transition-all">
+          {sidebarContent}
+        </aside>
+      )}
+
+      {/* Main Center Area: Chatbot Q&A Workspace */}
+      <main className="flex-1 h-screen flex flex-col min-w-0 bg-slate-50/70 overflow-hidden">
+        <ChatInterface
+          messages={messages}
+          isLoading={isQuerying}
+          hasDocuments={documents.length > 0}
+          documentsCount={documents.length}
+          generatedPrompts={generatedPrompts}
+          isGeneratingPrompts={isGeneratingPrompts}
+          onRefreshPrompts={handleRefreshPrompts}
+          onSendMessage={handleSendMessage}
+          onClearChat={handleClearChat}
+          onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+          isSidebarOpen={isSidebarOpen}
+        />
       </main>
-
-      {/* Footer */}
-      <footer className="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p>&copy; {new Date().getFullYear()} AI FAQ Assistant &bull; Powered by Google Gemini &amp; Supabase pgvector</p>
-          <div className="flex items-center space-x-3 text-[11px] text-slate-400">
-            <span>Local Transformers</span>
-            <span>&bull;</span>
-            <span>Zero-Cost Embeddings</span>
-            <span>&bull;</span>
-            <span>Instant Semantic Search</span>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

@@ -1,11 +1,12 @@
-﻿# Dependencies
+# Dependencies
 node_modules/
 
 # Production build output
 dist/
 dist-ssr/
 
-# Environment local overrides
+# Environment variables
+.env
 .env.local
 .env.*.local
 

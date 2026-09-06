@@ -135,19 +135,19 @@ export default function AnswerDisplay({ queryResult, isLoading, currentQuestion,
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 mt-6 animate-pulse">
+      <div className="bg-white rounded-2xl p-6 shadow-xs border border-slate-200/80 animate-pulse">
         <div className="flex items-center space-x-3 mb-4">
-          <div className="w-9 h-9 rounded-xl bg-blue-100/70" />
-          <div className="h-4 w-40 bg-slate-200 rounded" />
+          <div className="w-8 h-8 rounded-lg bg-indigo-50" />
+          <div className="h-4 w-44 bg-slate-100 rounded" />
         </div>
-        <div className="space-y-2.5">
+        <div className="space-y-3">
           <div className="h-3.5 bg-slate-100 rounded w-full" />
           <div className="h-3.5 bg-slate-100 rounded w-5/6" />
           <div className="h-3.5 bg-slate-100 rounded w-4/6" />
         </div>
-        <div className="mt-4 pt-4 border-t border-slate-100 flex gap-2">
-          <div className="h-6 w-24 bg-slate-100 rounded-full" />
-          <div className="h-6 w-20 bg-slate-100 rounded-full" />
+        <div className="mt-5 pt-4 border-t border-slate-100 flex gap-2">
+          <div className="h-6 w-28 bg-slate-100 rounded-lg" />
+          <div className="h-6 w-20 bg-slate-100 rounded-lg" />
         </div>
       </div>
     );
@@ -155,7 +155,7 @@ export default function AnswerDisplay({ queryResult, isLoading, currentQuestion,
 
   if (error) {
     return (
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-rose-200 mt-6 bg-rose-50/20">
+      <div className="bg-white rounded-2xl p-6 shadow-xs border border-rose-200 bg-rose-50/30">
         <div className="flex items-start space-x-3">
           <AlertCircle className="w-5 h-5 text-rose-600 mt-0.5 flex-shrink-0" />
           <div>
@@ -169,45 +169,53 @@ export default function AnswerDisplay({ queryResult, isLoading, currentQuestion,
 
   if (!queryResult) {
     return (
-      <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-200 mt-6 text-center">
-        <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto text-slate-400 mb-3">
-          <Bot className="w-6 h-6" />
+      <div className="bg-white rounded-2xl p-8 shadow-xs border border-slate-200/80 text-center min-h-[260px] flex flex-col items-center justify-center">
+        <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center mx-auto text-slate-400 mb-3 shadow-2xs">
+          <Bot className="w-7 h-7 text-slate-400" />
         </div>
-        <h3 className="text-sm font-semibold text-slate-800">No Query Submitted Yet</h3>
-        <p className="text-xs text-slate-400 max-w-sm mx-auto mt-1">
-          Ask any question above and the AI will analyze the indexed vector embeddings to formulate an accurate answer with citations.
+        <h3 className="text-sm font-bold text-slate-800">No Query Submitted Yet</h3>
+        <p className="text-xs text-slate-400 max-w-sm mx-auto mt-1 leading-relaxed">
+          Ask any question above and the AI will analyze your indexed knowledge documents to formulate an accurate answer with citations.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 mt-6 transition-all">
-      {/* Question Recap */}
+    <div className="bg-white rounded-2xl p-6 shadow-xs border border-slate-200/80 transition-all">
+      {/* Question Asked (Matching Screenshot) */}
       {currentQuestion && (
-        <div className="mb-4 pb-3 border-b border-slate-100">
-          <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-1">
-            Question Asked
-          </span>
-          <p className="text-sm font-medium text-slate-800 italic">
+        <div className="mb-5 pb-4 border-b border-slate-100">
+          <div className="flex items-center justify-between mb-1.5">
+            <div className="flex items-center space-x-1.5">
+              <span className="w-1 h-3.5 bg-indigo-600 rounded-full" />
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                QUESTION ASKED
+              </span>
+            </div>
+            <span className="text-xs text-slate-400 font-medium">Just now</span>
+          </div>
+          <h3 className="text-lg font-bold text-slate-900 tracking-tight">
             &ldquo;{currentQuestion}&rdquo;
-          </p>
+          </h3>
         </div>
       )}
 
-      {/* Answer Header */}
-      <div className="flex items-center justify-between mb-3">
+      {/* Answer Header Bar */}
+      <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+          <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
             <Sparkles className="w-4 h-4" />
           </div>
-          <h3 className="text-sm font-semibold text-slate-900">AI Synthesized Answer</h3>
+          <h4 className="text-xs font-bold text-slate-600 uppercase tracking-wider">
+            AI SYNTHESIZED ANSWER
+          </h4>
         </div>
 
         <button
           type="button"
           onClick={handleCopy}
-          className="flex items-center space-x-1 text-xs text-slate-500 hover:text-slate-800 p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+          className="flex items-center space-x-1 text-xs text-slate-500 hover:text-slate-800 px-2 py-1 rounded-lg hover:bg-slate-100 transition-colors border border-transparent hover:border-slate-200"
           title="Copy answer to clipboard"
         >
           {isCopied ? (
@@ -225,14 +233,14 @@ export default function AnswerDisplay({ queryResult, isLoading, currentQuestion,
       </div>
 
       {/* Answer Body with Rich Formatting */}
-      <div className="bg-slate-50/70 p-5 rounded-2xl border border-slate-100/80 shadow-xs">
+      <div className="text-slate-800 text-sm leading-relaxed">
         <FormattedAnswer content={queryResult.answer} />
       </div>
 
       {/* Citations & Sources */}
       {queryResult.sources && queryResult.sources.length > 0 && (
-        <div className="mt-4 pt-4 border-t border-slate-100">
-          <div className="flex items-center space-x-1.5 text-xs font-semibold text-slate-500 mb-2">
+        <div className="mt-5 pt-4 border-t border-slate-100">
+          <div className="flex items-center space-x-1.5 text-xs font-semibold text-slate-400 mb-2.5">
             <BookOpen className="w-3.5 h-3.5 text-blue-500" />
             <span>Document Sources</span>
           </div>
@@ -245,11 +253,11 @@ export default function AnswerDisplay({ queryResult, isLoading, currentQuestion,
               return (
                 <div
                   key={idx}
-                  className="flex items-center space-x-1.5 text-xs px-2.5 py-1 bg-blue-50 text-blue-800 border border-blue-100 rounded-lg font-medium"
+                  className="flex items-center space-x-1.5 text-xs px-3 py-1 bg-indigo-50/70 text-indigo-900 border border-indigo-100 rounded-lg font-medium"
                 >
-                  <span className="truncate max-w-[220px]">{source}</span>
+                  <span className="truncate max-w-[240px]">{source}</span>
                   {scorePercent && (
-                    <span className="bg-blue-200/70 text-blue-900 text-[10px] px-1.5 py-0.5 rounded font-bold">
+                    <span className="bg-indigo-200/60 text-indigo-800 text-[10px] px-1.5 py-0.5 rounded font-bold">
                       {scorePercent} Match
                     </span>
                   )}

@@ -1,4 +1,4 @@
-# AI FAQ Assistant with RAG - Project Phases
+# ContextSense with RAG - Project Phases
 
 **Timeline:** 1-2 Weeks  
 **Goal:** Build a production-ready RAG system for document Q&A  
@@ -17,7 +17,7 @@ A full-stack web application that allows users to:
 - Frontend: React + Tailwind CSS (Vercel)
 - Backend: Node.js + Express (Render)
 - Database & Vector DB: Supabase (pgvector + Auth) - FREE
-- Embeddings: Xenova/transformers (local, free)
+- Embeddings: @huggingface/transformers (local, free)
 - LLM: Google Gemini 2.0 Flash (free tier - 60 requests/minute)
 
 ---
@@ -387,7 +387,7 @@ A full-stack web application that allows users to:
 - [ ] Click "New repository"
 - [ ] Fill in:
   - [ ] **Repository name:** `faq-assistant`
-  - [ ] **Description:** "AI FAQ Assistant with RAG and LLM"
+  - [ ] **Description:** "ContextSense with RAG and LLM"
   - [ ] **Visibility:** Public (for portfolio)
   - [ ] **DO NOT** initialize with README
 - [ ] Click "Create repository"
@@ -476,7 +476,7 @@ If you answered YES to all → You're ready for Phase 2! 🎉
 - [ ] Run this complete command:
   ```bash
   npm install express dotenv @supabase/supabase-js \
-    @google/generative-ai @xenova/transformers multer \
+    @google/generative-ai @huggingface/transformers multer \
     pdf-parse cors axios
   ```
 - [ ] This installs:
@@ -484,7 +484,7 @@ If you answered YES to all → You're ready for Phase 2! 🎉
   - `dotenv` - Load environment variables
   - `@supabase/supabase-js` - Supabase client
   - `@google/generative-ai` - Google Gemini API (primary LLM)
-  - `@xenova/transformers` - Embedding model (free, local)
+  - `@huggingface/transformers` - Embedding model (free, local)
   - `multer` - File upload handling
   - `pdf-parse` - PDF extraction
   - `cors` - Cross-origin requests
@@ -737,7 +737,7 @@ export function chunkText(text, chunkSize = 500, overlap = 50) {
 - [ ] Paste:
 
 ```javascript
-import { pipeline } from '@xenova/transformers';
+import { pipeline } from '@huggingface/transformers';
 
 let embeddingModel = null;
 
@@ -994,7 +994,7 @@ export default router;
   ```
   This is a test document. It contains information about uploads.
   The system will chunk this text and create embeddings.
-  This is very important for the FAQ assistant.
+  This is very important for ContextSense.
   ```
 - [ ] Start server: `npm start`
 - [ ] Open another terminal and test with curl:
@@ -1790,7 +1790,7 @@ export const getDocuments = () => {
 - [ ] Paste this template and fill in YOUR values:
 
 ```markdown
-# AI FAQ Assistant with Retrieval-Augmented Generation (RAG)
+# ContextSense with Retrieval-Augmented Generation (RAG)
 
 An intelligent document Q&A system that combines modern AI with semantic search. Upload documents (PDF, TXT, Markdown) and ask questions - the system retrieves relevant content and generates accurate answers using Claude/Gemini.
 
@@ -1815,7 +1815,7 @@ An intelligent document Q&A system that combines modern AI with semantic search.
 | **Frontend** | React 18 + Tailwind CSS |
 | **Backend** | Node.js + Express.js |
 | **Database | Supabase (PostgreSQL + pgvector) |
-| **Embeddings** | Xenova/all-MiniLM-L6-v2 (local, free) |
+| **Embeddings** | Hugging Face all-MiniLM-L6-v2 (local, free) |
 | **LLM** | Google Gemini 2.0 Flash / Gemini 2.0 Flash |
 | **Hosting** | Vercel (frontend) + Render (backend) |
 
@@ -1830,7 +1830,7 @@ User Interface (React)
     │    ↓
     │    Parse & Chunk Text
     │    ↓
-    │    Generate Embeddings (Xenova - Local, Free)
+    │    Generate Embeddings (Hugging Face - Local, Free)
     │    ↓
     │    Store in Supabase (pgvector)
     │
@@ -2105,7 +2105,7 @@ Open an issue or contact me!
 
 **README Structure:**
 ```markdown
-# AI FAQ Assistant with RAG
+# ContextSense with RAG
 
 [Description]
 
@@ -2154,7 +2154,7 @@ User (React App)
     ↓ PDF/TXT Upload
 Backend (Express)
     ↓ Parse & Chunk
-Embeddings (Xenova)
+Embeddings (Hugging Face)
     ↓ Store
 Supabase (pgvector)
     ↓
@@ -2237,7 +2237,7 @@ Ideas for what you'd add next (resume-friendly):
 
 #### 6.9 Code Comments for Interviews
 - [ ] Add comments explaining RAG pipeline
-- [ ] Document trade-offs (why Xenova for embeddings?)
+- [ ] Document trade-offs (why Hugging Face for embeddings?)
 - [ ] Explain chunk size choice (500 chars)
 - [ ] Document similarity threshold decisions
 - [ ] Explain error handling strategies
@@ -2317,7 +2317,7 @@ After completing this project, be ready to discuss:
 **"Tell me about the tech stack"**
 - Frontend: React for UI, Tailwind for styling
 - Backend: Express for API, Node.js runtime
-- Embeddings: Xenova for free local embeddings (runs locally, no API calls)
+- Embeddings: Hugging Face Transformers for free local embeddings (runs locally, no API calls)
 - Vector DB: Supabase pgvector for semantic search
 - LLM: Google Gemini 2.0 Flash for natural language generation (very fast, free tier)
 
@@ -2352,7 +2352,7 @@ After completing this project, be ready to discuss:
 **Solution:** Accept it for MVP, mention in README that production would use paid tier
 
 ### Issue: Google Gemini API runs out of free credits
-**Solution:** Use Xenova embeddings (free, local) and don't spam queries during testing
+**Solution:** Use local Hugging Face embeddings (free, local) and don't spam queries during testing
 
 ### Issue: PDF parsing fails on complex PDFs
 **Solution:** Add error message, ask user to upload simpler PDF or try PDF converter
@@ -2383,7 +2383,7 @@ By the end of this project, you'll understand:
 
 - [Supabase Vector Documentation](https://supabase.com/docs/guides/ai)
 - [Google Gemini API Documentation](https://docs.anthropic.com)
-- [Xenova Transformers](https://huggingface.co/docs/transformers.js)
+- [Hugging Face Transformers.js](https://huggingface.co/docs/transformers.js)
 - [Express.js Guide](https://expressjs.com/)
 - [React Documentation](https://react.dev)
 - [Vercel Deployment Guide](https://vercel.com/docs)
