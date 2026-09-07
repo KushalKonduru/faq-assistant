@@ -111,8 +111,43 @@ router.get('/', async (req, res, next) => {
 });
 
 /**
+ * DELETE /api/documents/session/clear
+ * Delete all chunks associated with the active session
+ */
+router.delete('/session/clear', async (req, res, next) => {
+  try {
+    const sessionId = getSessionId(req);
+    if (!sessionId) {
+      return res.status(400).json({ error: 'Session ID is required to clear session documents' });
+    }
+
+    console.log(`🧹 Clearing all document chunks for session: ${sessionId.slice(0, 12)}...`);
+    const supabase = getSupabaseClient();
+
+    const { count, error } = await supabase
+      .from('documents')
+      .delete({ count: 'exact' })
+      .eq('session_id', sessionId);
+
+    if (error) {
+      console.error('❌ Supabase error clearing session documents:', error.message);
+      throw new Error(`Database error: ${error.message}`);
+    }
+
+    console.log(`✅ Cleared ${count} chunks for session: ${sessionId.slice(0, 12)}...`);
+    return res.json({
+      success: true,
+      message: `Cleared ${count} document chunk(s) from session`,
+      deletedChunks: count,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
  * DELETE /api/documents/:title
- * Delete all chunks for a document belonging to the active session
+ * Delete all chunks for a document belonging to the active session (with fallback)
  */
 router.delete('/:title', async (req, res, next) => {
   try {
@@ -122,11 +157,18 @@ router.delete('/:title', async (req, res, next) => {
     }
 
     const sessionId = getSessionId(req);
-    const title = decodeURIComponent(rawTitle);
+    let title = rawTitle;
+    try {
+      title = decodeURIComponent(rawTitle);
+    } catch {
+      title = rawTitle;
+    }
+
     console.log(`🗑️ Received delete request for document: "${title}" (Session: ${sessionId?.slice(0, 12)}...)`);
 
     const supabase = getSupabaseClient();
 
+    // Step 1: Attempt scoped delete matching title and session_id
     let query = supabase
       .from('documents')
       .delete({ count: 'exact' })
@@ -136,21 +178,28 @@ router.delete('/:title', async (req, res, next) => {
       query = query.eq('session_id', sessionId);
     }
 
-    const { count, error } = await query;
+    let { count, error } = await query;
 
     if (error) {
       console.error(`❌ Supabase error deleting document "${title}":`, error.message);
       throw new Error(`Database error: ${error.message}`);
     }
 
+    // Step 2: Fallback delete by title if 0 chunks matched
+    // (guarantees no orphaned chunks remain in Supabase if session ID shifted)
     if (count === 0) {
-      console.warn(`⚠️ No document chunks found matching title: "${title}" in session`);
-      return res.status(404).json({
-        error: `No document found with title "${title}" in your session`,
-      });
+      console.log(`ℹ️ Fallback delete by title for "${title}" to ensure complete removal from Supabase`);
+      const fallback = await supabase
+        .from('documents')
+        .delete({ count: 'exact' })
+        .eq('title', title);
+
+      if (!fallback.error && fallback.count > 0) {
+        count = fallback.count;
+      }
     }
 
-    console.log(`✅ Successfully deleted ${count} chunks for document "${title}"`);
+    console.log(`✅ Successfully removed ${count} chunk(s) for document "${title}" from Supabase`);
 
     return res.json({
       success: true,

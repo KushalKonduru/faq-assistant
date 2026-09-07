@@ -57,6 +57,11 @@ export const deleteDocument = async (title) => {
   return response.data;
 };
 
+export const clearSessionDocuments = async () => {
+  const response = await api.delete('/documents/session/clear');
+  return response.data;
+};
+
 export const generatePrompts = async (title) => {
   const response = await api.post('/documents/generate-prompts', { title });
   return response.data;

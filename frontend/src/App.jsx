@@ -4,7 +4,7 @@ import DocumentUpload from './components/DocumentUpload';
 import DocumentList from './components/DocumentList';
 import ChatInterface from './components/ChatInterface';
 import LandingPage from './components/LandingPage';
-import { checkHealth, queryDocuments, getDocuments, deleteDocument, generatePrompts } from './services/api';
+import { checkHealth, queryDocuments, getDocuments, deleteDocument, clearSessionDocuments, generatePrompts } from './services/api';
 import { getSessionId, resetSession } from './utils/session';
 
 function getInitialView() {
@@ -138,13 +138,18 @@ export default function App() {
     }
   };
 
-  // Reset private browser session (wipes active session workspace)
-  const handleResetSession = () => {
+  // Reset private browser session (wipes active session workspace and Supabase chunks)
+  const handleResetSession = async () => {
     if (
       window.confirm(
-        'Start a new private session? Your current workspace view on this browser will be reset.'
+        'Start a new private session? This will wipe your uploaded documents and reset your workspace.'
       )
     ) {
+      try {
+        await clearSessionDocuments();
+      } catch (err) {
+        console.warn('Could not wipe remote session docs:', err);
+      }
       resetSession();
       setDocuments([]);
       setGeneratedPrompts([]);
