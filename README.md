@@ -417,8 +417,3 @@ npm run build
 
 The build should compile cleanly without any JSX or bundler errors.
 
----
-
-## 📜 License
-
-This project is licensed under the MIT License — see the LICENSE file for details.
