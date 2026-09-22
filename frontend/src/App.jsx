@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Bot, Sparkles, ArrowLeft, RefreshCw, PanelLeftClose, PanelLeftOpen, ShieldCheck } from 'lucide-react';
 import DocumentUpload from './components/DocumentUpload';
 import DocumentList from './components/DocumentList';
@@ -25,6 +25,10 @@ export default function App() {
   const [isQuerying, setIsQuerying] = useState(false);
   const [isBackendOnline, setIsBackendOnline] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  // Maintain initial prompt pool and track asked questions to prevent repeat suggestions
+  const initialPromptsPoolRef = useRef([]);
+  const askedQuestionsRef = useRef(new Set());
 
   // Synchronize browser history and handle Back/Forward buttons
   useEffect(() => {
@@ -63,7 +67,11 @@ export default function App() {
           setIsGeneratingPrompts(true);
           const promptData = await generatePrompts(docs[0].title);
           if (promptData?.prompts?.length > 0) {
-            setGeneratedPrompts(promptData.prompts);
+            initialPromptsPoolRef.current = promptData.prompts;
+            const unasked = promptData.prompts.filter(
+              (p) => !askedQuestionsRef.current.has(p.trim().toLowerCase())
+            );
+            setGeneratedPrompts(unasked.length > 0 ? unasked : promptData.prompts);
           }
         } catch (pErr) {
           console.warn('Could not auto-generate initial prompts:', pErr);
@@ -72,6 +80,8 @@ export default function App() {
         }
       } else if (docs.length === 0) {
         setGeneratedPrompts([]);
+        initialPromptsPoolRef.current = [];
+        askedQuestionsRef.current.clear();
       }
     } catch (err) {
       console.warn('Could not fetch documents from backend:', err.message);
@@ -101,7 +111,7 @@ export default function App() {
 
   // When a new document is successfully uploaded, refresh the list from DB
   const handleUploadSuccess = () => {
-    loadDocuments();
+    loadDocuments(true);
   };
 
   // Delete a document and its chunks from Supabase
@@ -114,12 +124,18 @@ export default function App() {
       const remainingDocs = documents.filter((d) => (d.title || d.fileName) !== title);
       if (remainingDocs.length === 0) {
         setGeneratedPrompts([]);
+        initialPromptsPoolRef.current = [];
+        askedQuestionsRef.current.clear();
       } else {
         try {
           setIsGeneratingPrompts(true);
           const pData = await generatePrompts(remainingDocs[0].title);
           if (pData?.prompts?.length > 0) {
-            setGeneratedPrompts(pData.prompts);
+            initialPromptsPoolRef.current = pData.prompts;
+            const unasked = pData.prompts.filter(
+              (p) => !askedQuestionsRef.current.has(p.trim().toLowerCase())
+            );
+            setGeneratedPrompts(unasked.length > 0 ? unasked : pData.prompts);
           }
         } catch {
           setGeneratedPrompts([]);
@@ -153,6 +169,8 @@ export default function App() {
       resetSession();
       setDocuments([]);
       setGeneratedPrompts([]);
+      initialPromptsPoolRef.current = [];
+      askedQuestionsRef.current.clear();
       setMessages([]);
       loadDocuments(false);
     }
@@ -166,7 +184,11 @@ export default function App() {
       const targetDoc = documents[0];
       const pData = await generatePrompts(targetDoc.title || targetDoc.fileName);
       if (pData?.prompts?.length > 0) {
-        setGeneratedPrompts(pData.prompts);
+        initialPromptsPoolRef.current = pData.prompts;
+        const unasked = pData.prompts.filter(
+          (p) => !askedQuestionsRef.current.has(p.trim().toLowerCase())
+        );
+        setGeneratedPrompts(unasked.length > 0 ? unasked : pData.prompts);
       }
     } catch (err) {
       console.warn('Could not refresh starter questions from chunks:', err);
@@ -177,18 +199,29 @@ export default function App() {
 
   // Chat message submission handler
   const handleSendMessage = async (question) => {
+    const trimmedQuestion = question?.trim();
+    if (!trimmedQuestion) return;
+
+    // Track asked question so it is never re-suggested
+    askedQuestionsRef.current.add(trimmedQuestion.toLowerCase());
+
     const userMsg = {
       id: Date.now(),
       role: 'user',
-      content: question,
+      content: trimmedQuestion,
       timestamp: new Date(),
     };
 
     setMessages((prev) => [...prev, userMsg]);
     setIsQuerying(true);
 
+    // Immediately remove the asked question from suggestions list so it doesn't linger
+    setGeneratedPrompts((prev) =>
+      prev.filter((p) => p.trim().toLowerCase() !== trimmedQuestion.toLowerCase())
+    );
+
     try {
-      const data = await queryDocuments(question);
+      const data = await queryDocuments(trimmedQuestion);
       const botMsg = {
         id: Date.now() + 1,
         role: 'assistant',
@@ -198,6 +231,45 @@ export default function App() {
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, botMsg]);
+
+      // If follow-up questions are returned, replace and replenish the suggestions
+      const rawFollowUps = Array.isArray(data.follow_up_questions)
+        ? data.follow_up_questions
+        : [];
+
+      setGeneratedPrompts((prev) => {
+        const remaining = prev.filter(
+          (p) => !askedQuestionsRef.current.has(p.trim().toLowerCase())
+        );
+
+        const newFollowUps = rawFollowUps
+          .map((q) => (typeof q === 'string' ? q.trim() : ''))
+          .filter(
+            (q) =>
+              q.length > 0 &&
+              !askedQuestionsRef.current.has(q.toLowerCase()) &&
+              !remaining.some((r) => r.toLowerCase() === q.toLowerCase())
+          );
+
+        // Put fresh contextual follow-ups at the front, followed by remaining suggestions
+        const combined = [...newFollowUps, ...remaining];
+
+        // If suggestions are fewer than 4, replenish from initial chunk pool
+        if (combined.length < 4 && initialPromptsPoolRef.current.length > 0) {
+          for (const fallback of initialPromptsPoolRef.current) {
+            const cleanFallback = fallback.trim();
+            if (
+              !askedQuestionsRef.current.has(cleanFallback.toLowerCase()) &&
+              !combined.some((c) => c.toLowerCase() === cleanFallback.toLowerCase())
+            ) {
+              combined.push(cleanFallback);
+              if (combined.length >= 5) break;
+            }
+          }
+        }
+
+        return combined.slice(0, 6);
+      });
     } catch (err) {
       console.error('Query execution failed:', err);
       const errorMsg = {
@@ -218,6 +290,10 @@ export default function App() {
 
   const handleClearChat = () => {
     setMessages([]);
+    askedQuestionsRef.current.clear();
+    if (initialPromptsPoolRef.current.length > 0) {
+      setGeneratedPrompts(initialPromptsPoolRef.current);
+    }
   };
 
   // Navigate to Chat workspace with browser history synchronization

@@ -78,6 +78,7 @@ router.post('/', async (req, res, next) => {
           "I don't have relevant information in the documents to answer this question. Please try a different question or upload more relevant documents.",
         sources: [],
         similarity_scores: [],
+        follow_up_questions: [],
       });
     }
 
@@ -90,7 +91,7 @@ router.post('/', async (req, res, next) => {
 
     // Step 5: Generate answer using Gemini LLM
     console.log('🤖 Synthesizing answer with Google Gemini...');
-    const answer = await generateAnswerWithGemini(context, cleanQuestion);
+    const { answer, followUpQuestions } = await generateAnswerWithGemini(context, cleanQuestion);
 
     // Step 6: Extract unique source names and similarity scores
     const uniqueSources = [...new Set(results.map((r) => r.title))];
@@ -100,6 +101,7 @@ router.post('/', async (req, res, next) => {
 
     return res.json({
       answer,
+      follow_up_questions: followUpQuestions || [],
       sources: uniqueSources,
       similarity_scores: similarityScores,
     });

@@ -27,14 +27,18 @@ export async function generateAnswerWithGemini(context, question) {
 
   const genAI = new GoogleGenerativeAI(apiKey);
 
-  const systemPrompt = `You are an expert AI assistant that provides clear, well-structured, and highly readable answers based strictly on the provided documents.
+const systemPrompt = `You are an expert AI assistant that provides clear, well-structured, and highly readable answers based strictly on the provided documents.
 
 Guidelines:
 - Answer directly and professionally using only facts from the context.
 - Use clean Markdown formatting: short paragraphs, bold lead-ins for key terms, and bullet points where helpful.
 - DO NOT write citation brackets like "[Document 1]", "[Document 2]", or "(Source: ...)" inside your answer. The UI automatically displays sources separately.
 - Never repeat introductory phrases like "Based on the provided documents...". Jump straight to the answer.
-- If the information is not in the documents, simply state: "I don't have enough information in the uploaded documents to answer this."`;
+- If the information is not in the documents, simply state: "I don't have enough information in the uploaded documents to answer this."
+- At the very end of your response, provide 2 to 3 natural, relevant follow-up questions that the user might want to explore next based on the document context.
+Format the follow-up questions strictly at the end of your response as:
+---FOLLOW_UP_QUESTIONS---
+["Follow-up question 1?", "Follow-up question 2?", "Follow-up question 3?"]`;
 
   const userMessage = `Context from documents:
 
@@ -42,7 +46,7 @@ ${context}
 
 User question: ${question}
 
-Please provide a clean, direct, and well-structured answer.`;
+Please provide a clean, direct, and well-structured answer followed by the follow-up questions.`;
 
   let lastError = null;
 
@@ -57,15 +61,45 @@ Please provide a clean, direct, and well-structured answer.`;
       const response = await result.response;
       const rawText = response.text().trim();
 
+      // Extract follow-up questions if present
+      let followUpQuestions = [];
+      let answerBody = rawText;
+      const delimiter = '---FOLLOW_UP_QUESTIONS---';
+
+      if (rawText.includes(delimiter)) {
+        const parts = rawText.split(delimiter);
+        answerBody = parts[0].trim();
+        const followUpRaw = parts.slice(1).join(delimiter).trim();
+        try {
+          const jsonMatch = followUpRaw.match(/\[[\s\S]*?\]/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            if (Array.isArray(parsed)) {
+              followUpQuestions = parsed
+                .filter((q) => typeof q === 'string' && q.trim().length > 0)
+                .map((q) => q.trim());
+            }
+          }
+        } catch {
+          const lines = followUpRaw
+            .split('\n')
+            .map((l) => l.replace(/^[#*•\-\d\."\s]+/, '').replace(/["\]]+$/, '').trim());
+          followUpQuestions = lines.filter((l) => l.endsWith('?') && l.length >= 10);
+        }
+      }
+
       // Clean out distracting bracket citations and redundant source tags
-      const cleanAnswer = rawText
+      const cleanAnswer = answerBody
         .replace(/\[(?:Document|Doc)\s*\d+(?:\s*,\s*(?:Document|Doc)?\s*\d+)*\]/gi, '')
         .replace(/\(?\s*(?:Source|Source\s*Document|Ref):\s*[^)\n]+\)?/gi, '')
         .replace(/[ \t]{2,}/g, ' ')
         .replace(/\n{3,}/g, '\n\n')
         .trim();
 
-      return cleanAnswer;
+      return {
+        answer: cleanAnswer,
+        followUpQuestions,
+      };
     } catch (error) {
       console.warn(`⚠️ Model "${modelName}" failed (${error.message.slice(0, 80)}). Trying fallback...`);
       lastError = error;
