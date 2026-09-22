@@ -1,8 +1,8 @@
-﻿import express from 'express';
+import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { initializeEmbedder } from './utils/embedding.js';
-import documentsRouter from './routes/documents.js';
+import documentsRouter, { purgeExpiredDocuments } from './routes/documents.js';
 import queryRouter from './routes/query.js';
 import errorHandler from './middleware/errorHandler.js';
 
@@ -48,4 +48,7 @@ try {
 // Start server
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
+  // Privacy auto-purge: purge expired documents on boot and every 15 minutes
+  purgeExpiredDocuments();
+  setInterval(purgeExpiredDocuments, 15 * 60 * 1000);
 });

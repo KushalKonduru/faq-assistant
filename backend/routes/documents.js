@@ -363,4 +363,26 @@ router.post('/upload', upload.single('file'), async (req, res, next) => {
   }
 });
 
+/**
+ * Purge document chunks older than 1 hour to enforce privacy and prevent persistent retention
+ */
+export async function purgeExpiredDocuments() {
+  try {
+    const supabase = getSupabaseClient();
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const { count, error } = await supabase
+      .from('documents')
+      .delete({ count: 'exact' })
+      .lt('created_at', oneHourAgo);
+
+    if (error) {
+      console.warn('⚠️ Expired documents cleanup warning:', error.message);
+    } else if (count > 0) {
+      console.log(`🧹 Privacy Auto-Purge: Removed ${count} expired document chunk(s) older than 1 hour.`);
+    }
+  } catch (err) {
+    console.warn('⚠️ Expired documents cleanup failed:', err.message);
+  }
+}
+
 export default router;
